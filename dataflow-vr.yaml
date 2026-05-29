@@ -26,6 +26,21 @@ nodes:
       button_b:
         source: udp-receiver/button_b
         queue_size: 100
+      camera_wrist_right:
+        source: camera-wrist-right/image
+        queue_size: 1
+      camera_wrist_left:
+        source: camera-wrist-left/image
+        queue_size: 1
+      camera_head_left:
+        source: camera-head-stereo-splitter/image_0
+        queue_size: 1
+      camera_head_right:
+        source: camera-head-stereo-splitter/image_1
+        queue_size: 1
+      camera_ceiling:
+        source: camera-ceiling/image
+        queue_size: 1
     outputs:
       - command
 

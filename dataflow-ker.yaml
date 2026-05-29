@@ -22,6 +22,21 @@ nodes:
     inputs:
       # We need at least one input to keep this node alive.
       tick: dora/timer/secs/1
+      camera_wrist_right:
+        source: camera-wrist-right/image
+        queue_size: 1
+      camera_wrist_left:
+        source: camera-wrist-left/image
+        queue_size: 1
+      camera_head_left:
+        source: camera-head-stereo-splitter/image_0
+        queue_size: 1
+      camera_head_right:
+        source: camera-head-stereo-splitter/image_1
+        queue_size: 1
+      camera_ceiling:
+        source: camera-ceiling/image
+        queue_size: 1
     outputs:
       - command
 
