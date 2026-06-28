@@ -1,0 +1,2 @@
+[console_scripts]
+dora-position-merge-v1 = dora_position_merge_v1.main:main

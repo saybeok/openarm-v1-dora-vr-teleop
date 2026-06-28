@@ -1,0 +1,86 @@
+nodes:
+- id: quittable-tick-leader
+  build: pip install -e nodes/dora-openarm-quitter
+  path: dora-openarm-quitter
+  inputs:
+    command: ui/command
+    tick: dora/timer/millis/5
+  outputs:
+  - tick
+- id: udp-receiver
+  build: pip install -e nodes/dora-openarm-vr
+  path: dora-openarm-quest-receiver
+  args: --host 0.0.0.0 --port 5006
+  inputs:
+    tick: quittable-tick-leader/tick
+  outputs:
+  - pose_right
+  - pose_left
+  - trigger_right
+  - trigger_left
+  - joystick_y
+  - button_a
+  - button_b
+  - status
+- id: ik
+  build: pip install -e nodes/dora-openarm-kinematics
+  path: dora-openarm-ik
+  args: --mode bimanual --max-iters 30 --dt 0.02 --damping 0.08 --posture-cost 0.01
+    --lm-damping 0.01
+  inputs:
+    tick: quittable-tick-leader/tick
+    target_right: udp-receiver/pose_right
+    target_left: udp-receiver/pose_left
+    trigger_right: udp-receiver/trigger_right
+    trigger_left: udp-receiver/trigger_left
+    position: position-merge/position
+  outputs:
+  - position_right
+  - position_left
+- id: right-arm
+  path: ./scripts/run_lerobot_openarm_node.sh
+  args: --side right --port can0 --id openarm_right --send-hz 100 --obs-hz 100 --scale
+    1.0 --max-delta 90 --max-step-deg 1.0 --gripper-open-deg -50 --gripper-close-deg
+    0 --gripper-max-step-deg 5.0
+  inputs:
+    move_position: ik/position_right
+    gripper: udp-receiver/trigger_right
+  outputs:
+  - status
+  - position
+- id: left-arm
+  path: ./scripts/run_lerobot_openarm_node.sh
+  args: --side left --port can1 --id openarm_left --send-hz 100 --obs-hz 100 --scale
+    1.0 --max-delta 90 --max-step-deg 1.0 --gripper-open-deg -50 --gripper-close-deg
+    0 --gripper-max-step-deg 5.0
+  inputs:
+    move_position: ik/position_left
+    gripper: udp-receiver/trigger_left
+  outputs:
+  - status
+  - position
+- id: position-merge
+  build: pip install -e nodes/dora-position-merge-v1
+  path: dora-position-merge-v1
+  inputs:
+    tick: quittable-tick-leader/tick
+    right: right-arm/position
+    left: left-arm/position
+  outputs:
+  - position
+  - status
+- id: ui
+  build: pip install -e nodes/dora-openarm-data-collection-ui
+  path: dora-openarm-data-collection-ui
+  env:
+    METADATA_FILE: metadata_mujoco.yaml
+  inputs:
+    tick: dora/timer/secs/1
+    button_a:
+      source: udp-receiver/button_a
+      queue_size: 100
+    button_b:
+      source: udp-receiver/button_b
+      queue_size: 100
+  outputs:
+  - command

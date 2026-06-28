@@ -1,0 +1,11 @@
+[project]
+name = "dora-lerobot-openarm-v1"
+version = "0.1.0"
+dependencies = []
+
+[project.scripts]
+dora-lerobot-openarm-v1 = "dora_lerobot_openarm_v1.main:main"
+
+[build-system]
+requires = ["setuptools"]
+build-backend = "setuptools.build_meta"

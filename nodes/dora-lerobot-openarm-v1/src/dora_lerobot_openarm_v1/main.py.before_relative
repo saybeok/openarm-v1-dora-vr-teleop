@@ -1,0 +1,160 @@
+import argparse
+import time
+
+import dora
+import numpy as np
+import pyarrow as pa
+
+from lerobot.robots.openarm_follower import OpenArmFollower, OpenArmFollowerConfig
+
+
+JOINT_KEYS = [
+    "joint_1.pos",
+    "joint_2.pos",
+    "joint_3.pos",
+    "joint_4.pos",
+    "joint_5.pos",
+    "joint_6.pos",
+    "joint_7.pos",
+]
+
+
+def parse_args():
+    parser = argparse.ArgumentParser()
+    parser.add_argument("--side", required=True, choices=["right", "left"])
+    parser.add_argument("--port", required=True)
+    parser.add_argument("--id", default=None)
+    parser.add_argument("--send-hz", type=float, default=50.0)
+    parser.add_argument("--obs-hz", type=float, default=50.0)
+    parser.add_argument("--dry-run", action="store_true")
+    return parser.parse_args()
+
+
+def make_openarm_config(args):
+    return OpenArmFollowerConfig(
+        port=args.port,
+        side=args.side,
+        can_interface="socketcan",
+        use_can_fd=True,
+        can_bitrate=1000000,
+        can_data_bitrate=5000000,
+        id=args.id or f"openarm_{args.side}",
+    )
+
+
+class LeRobotOpenArmNode:
+    def __init__(self, args):
+        self.args = args
+        self.side = args.side
+
+        self.min_send_period = 1.0 / max(args.send_hz, 1.0)
+        self.min_obs_period = 1.0 / max(args.obs_hz, 1.0)
+
+        self.last_send = 0.0
+        self.last_obs = 0.0
+        self.robot = None
+
+        if not args.dry_run:
+            cfg = make_openarm_config(args)
+            print(f"[OpenArmFollowerConfig] {cfg}", flush=True)
+            self.robot = OpenArmFollower(cfg)
+            self.robot.connect()
+
+        print(
+            f"[LeRobot OpenArm] side={args.side} port={args.port} "
+            f"send_hz={args.send_hz} obs_hz={args.obs_hz} dry_run={args.dry_run}",
+            flush=True,
+        )
+
+    def close(self):
+        if self.robot is not None:
+            self.robot.disconnect()
+
+    def get_position8(self):
+        if self.robot is None:
+            return None
+
+        obs = self.robot.get_observation()
+
+        vals = []
+        for key in JOINT_KEYS:
+            if key not in obs:
+                print(f"[OBS MISSING] {self.side} key={key} obs_keys={list(obs.keys())}", flush=True)
+                return None
+            vals.append(float(obs[key]))
+
+        # LeRobot OpenArm observation position is degree scale.
+        # Dora IK sync expects radians, same as ROS joint_states.
+        rad = np.deg2rad(np.array(vals, dtype=np.float32))
+
+        # 8th value is gripper dummy for IK position[16] format.
+        return np.concatenate([rad, np.array([0.0], dtype=np.float32)]).astype(np.float32)
+
+    def send_position(self, values):
+        if values.shape[0] < 7:
+            return
+
+        now = time.time()
+        if now - self.last_send < self.min_send_period:
+            return
+
+        self.last_send = now
+
+        # Dora IK output is radians.
+        # LeRobot OpenArm action expects degrees.
+        deg = np.rad2deg(values[:7].astype(np.float32))
+
+        action = {
+            "joint_1.pos": float(deg[0]),
+            "joint_2.pos": float(deg[1]),
+            "joint_3.pos": float(deg[2]),
+            "joint_4.pos": float(deg[3]),
+            "joint_5.pos": float(deg[4]),
+            "joint_6.pos": float(deg[5]),
+            "joint_7.pos": float(deg[6]),
+        }
+
+        if self.args.dry_run:
+            print(f"[DRY_RUN {self.side}] {action}", flush=True)
+            return
+
+        self.robot.send_action(action)
+
+
+def main():
+    args = parse_args()
+
+    arm = LeRobotOpenArmNode(args)
+    node = dora.Node()
+
+    node.send_output("status", pa.array([f"{args.side}_ready"]))
+
+    try:
+        for event in node:
+            now = time.time()
+
+            # output current physical joint position for IK sync
+            if not args.dry_run and now - arm.last_obs >= arm.min_obs_period:
+                arm.last_obs = now
+                pos8 = arm.get_position8()
+                if pos8 is not None:
+                    node.send_output("position", pa.array(pos8, type=pa.float32()))
+
+            if event["type"] != "INPUT":
+                continue
+
+            if event["id"] != "move_position":
+                continue
+
+            values = event["value"].to_numpy().astype(np.float32)
+            arm.send_position(values)
+
+    except KeyboardInterrupt:
+        pass
+
+    finally:
+        arm.close()
+
+
+if __name__ == "__main__":
+    main()
