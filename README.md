@@ -28,3 +28,10 @@ This project is based on modifications and configuration work around the origina
 
 The original OpenArm-related projects are licensed under Apache License 2.0.  
 Please keep the original copyright and license notices when redistributing modified code.
+
+## Current physical robot status
+
+- OpenArm v1 physical robot teleoperation confirmed.
+- Quest → Dora IK → ROS2 bridge → joint_trajectory_controller chain works.
+- Initial physical test was performed with gripper disabled.
+- Recommended default is `DRY_RUN=1` for safety before each run.
