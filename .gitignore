@@ -23,3 +23,16 @@ openarm_v1_bimanual*.urdf
 .DS_Store
 .vscode/
 .idea/
+
+.venv/
+__pycache__/
+*.pyc
+*.log
+MUJOCO_LOG.TXT
+out/
+vr_data/
+vr_mujoco_data/
+.github/
+.DS_Store
+.vscode/
+.idea/

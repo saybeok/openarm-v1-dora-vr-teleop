@@ -7,9 +7,7 @@ nodes:
   outputs:
   - tick
 - id: udp-receiver
-  build: pip install -e nodes/dora-openarm-vr
-  path: dora-openarm-quest-receiver
-  args: --host 0.0.0.0 --port 5006
+  path: ./scripts/run_quest_receiver_source.sh
   inputs:
     tick: quittable-tick-leader/tick
   outputs:

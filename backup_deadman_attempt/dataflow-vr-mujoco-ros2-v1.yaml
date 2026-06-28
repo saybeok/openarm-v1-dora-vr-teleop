@@ -19,7 +19,7 @@ nodes:
   path: dora-openarm-quitter
   inputs:
     command: ui/command
-    tick: dora/timer/millis/50
+    tick: dora/timer/millis/2
   outputs:
   - tick
 - id: udp-receiver
@@ -40,15 +40,14 @@ nodes:
 - id: ik
   build: pip install -e nodes/dora-openarm-kinematics
   path: dora-openarm-ik
-  args: --mode bimanual --max-iters 80 --dt 0.05 --damping 0.05 --posture-cost 0.01
-    --lm-damping 0.008
+  args: --mode bimanual --max-iters 10 --dt 0.1 --damping 0.1 --posture-cost 0.01
+    --lm-damping 0.01
   inputs:
     tick: quittable-tick-leader/tick
     target_right: udp-receiver/pose_right
     target_left: udp-receiver/pose_left
     trigger_right: udp-receiver/trigger_right
     trigger_left: udp-receiver/trigger_left
-    position: ros2-v1-bridge/position
   outputs:
   - position_left
   - position_right
@@ -97,14 +96,12 @@ nodes:
   inputs:
     position_right: ik/position_right
     position_left: ik/position_left
-    trigger_right: udp-receiver/trigger_right
-    trigger_left: udp-receiver/trigger_left
   env:
     DRY_RUN: '0'
-    ENABLE_GRIPPER: '1'
-    SEND_HZ: '20'
-    TRAJ_TIME: '0.10'
+    ENABLE_GRIPPER: '0'
+    SEND_HZ: '5'
+    TRAJ_TIME: '0.5'
     GRIPPER_MAX: '0.044'
     GRIPPER_REVERSE: '0'
-  outputs:
-  - position
+    ENABLE_DEADMAN: '0'
+    MAX_JUMP_RAD: '0.35'

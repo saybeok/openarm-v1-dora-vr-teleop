@@ -35,3 +35,20 @@ Please keep the original copyright and license notices when redistributing modif
 - Quest → Dora IK → ROS2 bridge → joint_trajectory_controller chain works.
 - Initial physical test was performed with gripper disabled.
 - Recommended default is `DRY_RUN=1` for safety before each run.
+
+## Status
+
+This branch is an experimental OpenArm v1 VR teleoperation prototype using Dora, Meta Quest, MuJoCo, and ROS2.
+
+It successfully demonstrates:
+- Quest VR input reception
+- Dora-based IK pipeline
+- MuJoCo v1 preview using direct qpos updates
+- ROS2 bridge to OpenArm v1 joint trajectory controllers
+- Physical robot motion through CAN/ROS2
+
+Known limitations:
+- Physical robot tracking does not perfectly match MuJoCo preview.
+- VR pose noise and IK output jitter make it unsuitable for high-quality imitation learning data collection.
+- Gripper action control requires separate direct trigger handling.
+- The project is kept as a technical reference and experiment archive, not a production data-collection stack.
