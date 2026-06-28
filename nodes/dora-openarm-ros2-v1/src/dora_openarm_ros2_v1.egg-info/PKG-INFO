@@ -1,0 +1,6 @@
+Metadata-Version: 2.4
+Name: dora-openarm-ros2-v1
+Version: 0.1.0
+Requires-Dist: dora-rs==0.5.0
+Requires-Dist: pyarrow
+Requires-Dist: numpy

@@ -1,0 +1,11 @@
+[project]
+name = "dora-openarm-ros2-v1"
+version = "0.1.0"
+dependencies = ["dora-rs==0.5.0", "pyarrow", "numpy"]
+
+[project.scripts]
+dora-openarm-ros2-v1 = "dora_openarm_ros2_v1.main:main"
+
+[build-system]
+requires = ["setuptools"]
+build-backend = "setuptools.build_meta"
